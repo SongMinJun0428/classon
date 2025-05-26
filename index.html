@@ -257,19 +257,29 @@ button:hover {
       }
     }
 
+    function sanitizeFileName(originalName) {
+  const extension = originalName.substring(originalName.lastIndexOf('.'));
+  const base = Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+  return `${base}${extension}`;
+}
+
+
     async function uploadImage(file) {
-      const fileName = `${Date.now()}_${file.name}`;
-      const { data, error } = await supabaseClient.storage
-        .from('notice-images')
-        .upload(fileName, file);
+  const safeFileName = sanitizeFileName(file.name); // 👈 안전한 파일명 만들기
 
-      if (error) {
-        console.error(error);
-        throw new Error("이미지 업로드 실패");
-      }
+  const { error } = await supabaseClient.storage
+    .from('notice-images')
+    .upload(safeFileName, file);
 
-      return `https://gkeujimtvzioehhgmovz.supabase.co/storage/v1/object/public/notice-images/${fileName}`;
-    }
+  if (error) {
+    console.error("🚨 업로드 실패:", error.message || error);
+    throw new Error("이미지 업로드 실패");
+  }
+
+  return `https://gkeujimtvzioehhgmovz.supabase.co/storage/v1/object/public/notice-images/${safeFileName}`;
+}
+
+
 
     async function postNotice() {
   const title = document.getElementById("noticeTitle").value.trim();
