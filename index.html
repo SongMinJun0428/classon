@@ -5,90 +5,130 @@
   <title>클래스 온 - 학급 공지 & 수행평가</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body {
-      font-family: 'Arial', sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-    }
+  body {
+  font-family: 'Arial', sans-serif;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 0;
+}
 
-    .container {
-      max-width: 600px;
-      margin: 40px auto;
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
+.container {
+  width: 90%;
+  max-width: 600px;
+  margin: 40px auto;
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
 
-    header {
-      text-align: center;
-      margin-bottom: 30px;
-    }
+header {
+  text-align: center;
+  margin-bottom: 30px;
+}
 
-    header h1 {
-      color: #007bff;
-      margin: 0;
-    }
+header h1 {
+  color: #007bff;
+  margin: 0;
+  font-size: 1.8rem;
+}
 
-    .form-group {
-      margin-bottom: 20px;
-    }
+.form-group {
+  margin-bottom: 20px;
+}
 
-    input, textarea {
-      padding: 10px;
-      width: 100%;
-      box-sizing: border-box;
-      margin-top: 5px;
-      margin-bottom: 10px;
-    }
+input, textarea {
+  padding: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
 
-    button {
-      padding: 10px 15px;
-      border: none;
-      background-color: #007bff;
-      color: white;
-      border-radius: 5px;
-      cursor: pointer;
-    }
+textarea {
+  resize: vertical;
+  min-height: 80px;
+}
 
-    #app {
-      display: none;
-    }
+button {
+  padding: 12px;
+  width: 100%;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
 
-    .editor-only {
-      display: none;
-      margin-top: 20px;
-    }
+button:hover {
+  background-color: #0056b3;
+}
 
-    #noticeList {
-      background: #eef;
-      padding: 10px;
-      border-radius: 5px;
-    }
+#app {
+  display: none;
+}
 
-    .notice-item {
-      padding: 10px 0;
-      border-bottom: 1px solid #ddd;
-    }
+.editor-only {
+  display: none;
+  margin-top: 20px;
+}
 
-    .notice-item:last-child {
-      border-bottom: none;
-    }
+#noticeForm {
+  margin-top: 10px;
+}
 
-    .notice-item img {
-      max-width: 100%;
-      margin-top: 10px;
-      border-radius: 8px;
-    }
+#noticeList {
+  background: #eef;
+  padding: 10px;
+  border-radius: 5px;
+}
 
-    .footer {
-      text-align: center;
-      font-size: 12px;
-      color: gray;
-      margin-top: 30px;
-    }
-  </style>
+.notice-item {
+  padding: 10px 0;
+  border-bottom: 1px solid #ddd;
+  word-break: break-word;
+}
+
+.notice-item:last-child {
+  border-bottom: none;
+}
+
+.notice-item img {
+  max-width: 100%;
+  height: auto;
+  margin-top: 10px;
+  border-radius: 8px;
+}
+
+.footer {
+  text-align: center;
+  font-size: 12px;
+  color: gray;
+  margin-top: 30px;
+}
+
+/* ✅ 모바일 최적화 */
+@media screen and (max-width: 480px) {
+  header h1 {
+    font-size: 1.5rem;
+  }
+
+  input, textarea, button {
+    font-size: 1rem;
+    padding: 10px;
+  }
+
+  .container {
+    padding: 20px;
+  }
+}
+</style>
+
 </head>
 <body>
   <div class="container">
@@ -208,48 +248,47 @@
     }
 
     async function postNotice() {
-      const title = document.getElementById("noticeTitle").value.trim();
-      const content = document.getElementById("noticeContent").value.trim();
-      const date = document.getElementById("noticeDate").value;
-      const imageFile = document.getElementById("noticeImage").files[0];
+  const title = document.getElementById("noticeTitle").value.trim();
+  const content = document.getElementById("noticeContent").value.trim();
+  const performanceDate = document.getElementById("performanceDate").value;
+  const imageFile = document.getElementById("noticeImage").files[0];
 
-      if (!title || !content || !date) {
-        alert("모든 항목을 입력해 주세요.");
-        return;
-      }
+  // ❗ 여기서 'date' → 'performanceDate' 로 수정
+  if (!title || !content || !performanceDate) {
+    alert("모든 항목을 입력해 주세요.");
+    return;
+  }
 
-      let imageUrl = '';
-      if (imageFile) {
-        try {
-          imageUrl = await uploadImage(imageFile);
-        } catch {
-          return alert("이미지 업로드 중 오류가 발생했습니다.");
-        }
-      }
+  let imageUrl = '';
+  if (imageFile) {
+    try {
+      imageUrl = await uploadImage(imageFile);
+    } catch {
+      return alert("이미지 업로드 중 오류가 발생했습니다.");
+    }
+  }
 
-      const performanceDate = document.getElementById("performanceDate").value;
-
-    const { error } = await supabaseClient.from('notices').insert({
+  const { error } = await supabaseClient.from('notices').insert({
     title,
     content,
     performance_date: performanceDate,
     image_url: imageUrl,
     created_by: currentUser.name
-    });
+  });
 
+  if (error) {
+    alert("공지 등록 실패");
+    console.error(error);
+  } else {
+    alert("공지 등록 완료!");
+    document.getElementById("noticeTitle").value = "";
+    document.getElementById("noticeContent").value = "";
+    document.getElementById("performanceDate").value = ""; // ← 올바른 필드로 수정
+    document.getElementById("noticeImage").value = "";
+    loadNotices();
+  }
+}
 
-      if (error) {
-        alert("공지 등록 실패");
-        console.error(error);
-      } else {
-        alert("공지 등록 완료!");
-        document.getElementById("noticeTitle").value = "";
-        document.getElementById("noticeContent").value = "";
-        document.getElementById("noticeDate").value = "";
-        document.getElementById("noticeImage").value = "";
-        loadNotices();
-      }
-    }
 
     async function loadNotices() {
     const { data, error } = await supabaseClient
