@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>클래스 온 - 학급 공지 & 수행평가</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    header h1 {
+      color: #007bff;
+      margin: 0;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    input, textarea {
+      padding: 10px;
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 5px;
+      margin-bottom: 10px;
+    }
+
+    button {
+      padding: 10px 15px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #app {
+      display: none;
+    }
+
+    .editor-only {
+      display: none;
+      margin-top: 20px;
+    }
+
+    #noticeList {
+      background: #eef;
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    .notice-item {
+      padding: 10px 0;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .notice-item:last-child {
+      border-bottom: none;
+    }
+
+    .notice-item img {
+      max-width: 100%;
+      margin-top: 10px;
+      border-radius: 8px;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: gray;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📚 클래스 온</h1>
+      <p>우리 반 공지사항과 수행평가를 한눈에!</p>
+    </header>
+
+    <section id="loginSection">
+      <h3>🔐 로그인</h3>
+      <div class="form-group">
+        <input type="text" id="loginId" placeholder="아이디 입력">
+        <input type="password" id="loginPw" placeholder="비밀번호 입력">
+        <button onclick="login()">로그인</button>
+      </div>
+    </section>
+
+    <section id="app">
+      <h3 id="welcome"></h3>
+
+      <div class="editor-only">
+        <h4>📢 새 공지 등록</h4>
+        <input type="text" id="noticeTitle" placeholder="제목을 입력하세요">
+        <input type="date" id="performanceDate" placeholder="수행일자 입력">
+        <textarea id="noticeContent" placeholder="내용을 입력하세요"></textarea>
+        <input type="file" id="noticeImage" accept="image/*">
+        <button onclick="postNotice()">공지 등록</button>
+      </div>
+
+      <h4>📄 공지사항</h4>
+      <div id="noticeList">등록된 공지가 없습니다.</div>
+    </section>
+
+    <div class="footer">
+      ⓒ 2025 클래스 온 | 만든이: 송민준
+    </div>
+  </div>
+
+  <script>
+    // ✅ Supabase 연결: 변수명 충돌 해결
+    const supabaseClient = supabase.createClient(
+      'https://gkeujimtvzioehhgmovz.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrZXVqaW10dnppb2VoaGdtb3Z6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgyNDU5MzMsImV4cCI6MjA2MzgyMTkzM30.YPP-TaJQk9XSbIyKib0GUQeR1wwDpqfJIcHKdKz2YCQ'
+    );
+
+    const users = [
+    { id: "곽호주", name: "곽호주", password: "bd1234", is_editor: false },
+    { id: "권민서", name: "권민서", password: "bd1234", is_editor: false },
+    { id: "김가온", name: "김가온", password: "bd1234", is_editor: false },
+    { id: "김도희", name: "김도희", password: "bd1234", is_editor: false },
+    { id: "김보서", name: "김보서", password: "bd1234", is_editor: true },
+    { id: "김소윤", name: "김소윤", password: "bd1234", is_editor: true },
+    { id: "김시온", name: "김시온", password: "bd1234", is_editor: false },
+    { id: "김시윤", name: "김시윤", password: "bd1234", is_editor: false },
+    { id: "김유림", name: "김유림", password: "bd1234", is_editor: false },
+    { id: "김찬영", name: "김찬영", password: "bd1234", is_editor: false },
+    { id: "김하은", name: "김하은", password: "bd1234", is_editor: false },
+    { id: "김하준", name: "김하준", password: "bd1234", is_editor: false },
+    { id: "김단비", name: "김단비", password: "bd1234", is_editor: false },
+    { id: "김래원", name: "김래원", password: "bd1234", is_editor: true },
+    { id: "목소윤", name: "목소윤", password: "bd1234", is_editor: true },
+    { id: "서지효", name: "서지효", password: "bd1234", is_editor: false },
+    { id: "손지민", name: "손지민", password: "bd1234", is_editor: false },
+    { id: "송민준", name: "송민준", password: "bd1234", is_editor: true },
+    { id: "송예준", name: "송예준", password: "bd1234", is_editor: false },
+    { id: "송하윤", name: "송하윤", password: "bd1234", is_editor: false },
+    { id: "신채윤", name: "신채윤", password: "bd1234", is_editor: false },
+    { id: "양현진", name: "양현진", password: "bd1234", is_editor: false },
+    { id: "이승민", name: "이승민", password: "bd1234", is_editor: false },
+    { id: "이의준", name: "이의준", password: "bd1234", is_editor: false },
+    { id: "이재인", name: "이재인", password: "bd1234", is_editor: false },
+    { id: "이한결", name: "이한결", password: "bd1234", is_editor: false },
+    { id: "이효인", name: "이효인", password: "bd1234", is_editor: false },
+    { id: "임효상", name: "임효상", password: "bd1234", is_editor: false },
+    { id: "주시하", name: "주시하", password: "bd1234", is_editor: false },
+    { id: "주현성", name: "주현성", password: "bd1234", is_editor: false },
+    { id: "최가람", name: "최가람", password: "bd1234", is_editor: false },
+    { id: "홍찬슬", name: "홍찬슬", password: "bd1234", is_editor: false },
+    { id: "한인표", name: "한인표", password: "bd1234", is_editor: false },
+    { id: "선생님", name: "선생님", password: "bd1234", is_editor: true },
+    ];
+
+
+    let currentUser = null;
+
+    function login() {
+      const id = document.getElementById("loginId").value;
+      const pw = document.getElementById("loginPw").value;
+      const user = users.find(u => u.id === id && u.password === pw);
+
+      if (user) {
+        currentUser = user;
+        document.getElementById("welcome").textContent = `👋 안녕하세요, ${user.name}님`;
+        document.getElementById("loginSection").style.display = "none";
+        document.getElementById("app").style.display = "block";
+        if (user.is_editor) {
+          document.querySelector(".editor-only").style.display = "block";
+        }
+        loadNotices();
+      } else {
+        alert("❌ 아이디 또는 비밀번호가 틀렸습니다.");
+      }
+    }
+
+    async function uploadImage(file) {
+      const fileName = `${Date.now()}_${file.name}`;
+      const { data, error } = await supabaseClient.storage
+        .from('notice-images')
+        .upload(fileName, file);
+
+      if (error) {
+        console.error(error);
+        throw new Error("이미지 업로드 실패");
+      }
+
+      return `https://gkeujimtvzioehhgmovz.supabase.co/storage/v1/object/public/notice-images/${fileName}`;
+    }
+
+    async function postNotice() {
+      const title = document.getElementById("noticeTitle").value.trim();
+      const content = document.getElementById("noticeContent").value.trim();
+      const date = document.getElementById("noticeDate").value;
+      const imageFile = document.getElementById("noticeImage").files[0];
+
+      if (!title || !content || !date) {
+        alert("모든 항목을 입력해 주세요.");
+        return;
+      }
+
+      let imageUrl = '';
+      if (imageFile) {
+        try {
+          imageUrl = await uploadImage(imageFile);
+        } catch {
+          return alert("이미지 업로드 중 오류가 발생했습니다.");
+        }
+      }
+
+      const performanceDate = document.getElementById("performanceDate").value;
+
+    const { error } = await supabaseClient.from('notices').insert({
+    title,
+    content,
+    performance_date: performanceDate,
+    image_url: imageUrl,
+    created_by: currentUser.name
+    });
+
+
+      if (error) {
+        alert("공지 등록 실패");
+        console.error(error);
+      } else {
+        alert("공지 등록 완료!");
+        document.getElementById("noticeTitle").value = "";
+        document.getElementById("noticeContent").value = "";
+        document.getElementById("noticeDate").value = "";
+        document.getElementById("noticeImage").value = "";
+        loadNotices();
+      }
+    }
+
+    async function loadNotices() {
+    const { data, error } = await supabaseClient
+        .from('notices')
+        .select('*')
+        .order('performance_date', { ascending: true });  // ← ✅ 수행일 기준 정렬
+
+    const container = document.getElementById("noticeList");
+
+    if (error || !data) {
+        container.innerHTML = "공지사항을 불러오는 데 실패했습니다.";
+        return;
+    }
+
+    if (data.length === 0) {
+        container.innerHTML = "등록된 공지가 없습니다.";
+        return;
+    }
+
+    container.innerHTML = data.map(n => `
+        <div class="notice-item">
+        <strong>${n.title}</strong> (🗓️ 수행일: ${n.performance_date})<br/>
+        ${n.content}<br/>
+        <small>작성자: ${n.created_by}</small><br/>
+        ${n.image_url ? `<img src="${n.image_url}" alt="이미지">` : ''}
+        </div>
+    `).join('');
+    }
+
+  </script>
+</body>
+</html>
