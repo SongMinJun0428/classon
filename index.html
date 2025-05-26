@@ -238,24 +238,43 @@ button:hover {
 
     let currentUser = null;
 
-    function login() {
-      const id = document.getElementById("loginId").value;
-      const pw = document.getElementById("loginPw").value;
-      const user = users.find(u => u.id === id && u.password === pw);
+    async function login() {
+  const id = document.getElementById("loginId").value;
+  const pw = document.getElementById("loginPw").value;
+  const user = users.find(u => u.id === id && u.password === pw);
 
-      if (user) {
-        currentUser = user;
-        document.getElementById("welcome").textContent = `👋 안녕하세요, ${user.name}님`;
-        document.getElementById("loginSection").style.display = "none";
-        document.getElementById("app").style.display = "block";
-        if (user.is_editor) {
-          document.querySelector(".editor-only").style.display = "block";
-        }
-        loadNotices();
-      } else {
-        alert("❌ 아이디 또는 비밀번호가 틀렸습니다.");
-      }
+  if (user) {
+    currentUser = user;
+
+    // UI 업데이트
+    document.getElementById("welcome").textContent = `👋 안녕하세요, ${user.name}님`;
+    document.getElementById("loginSection").style.display = "none";
+    document.getElementById("app").style.display = "block";
+
+    // 작성 권한이 있을 경우만 입력 영역 보이기
+    if (user.is_editor) {
+      document.querySelector(".editor-only").style.display = "block";
     }
+
+    // ✅ Supabase에 로그인 기록 저장
+    const { error: logError } = await supabaseClient.from("logins").insert({
+      user_id: user.id,
+      name: user.name
+    });
+
+    if (logError) {
+      console.error("🚨 로그인 기록 저장 실패:", logError.message || logError);
+    }
+
+    // 공지 불러오기
+    loadNotices();
+
+
+  } else {
+    alert("❌ 아이디 또는 비밀번호가 틀렸습니다.");
+  }
+}
+
 
     function sanitizeFileName(originalName) {
   const extension = originalName.substring(originalName.lastIndexOf('.'));
