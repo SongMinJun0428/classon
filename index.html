@@ -107,7 +107,6 @@ button:hover {
   border-radius: 8px;
 }
 
-
 .notice-item a {
   display: inline-block;
   margin-top: 6px;
@@ -150,6 +149,111 @@ button:hover {
     font-size: 11px;
   }
 }
+
+/* 이미지 슬라이드 스타일 */
+.image-slider {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  gap: 10px;
+  padding: 10px 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.image-slider::-webkit-scrollbar {
+  display: none;
+}
+
+.slide-item {
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 300px;
+  scroll-snap-align: start;
+  text-align: center;
+  display: none;
+}
+
+.slide-item.active {
+  display: block;
+}
+
+.slide-item img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.download-link {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.9rem;
+  color: #007bff;
+  text-decoration: none;
+}
+
+.slider-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.slider-wrapper .prev-btn,
+.slider-wrapper .next-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #007bff;
+}
+
+.slide-container {
+  width: 100%;
+  max-width: 300px;
+  overflow: hidden;
+}
+
+
+
+/* 이미지 슬라이드 스타일 */
+.image-slider {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  gap: 10px;
+  padding: 10px 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.image-slider::-webkit-scrollbar {
+  display: none;
+}
+
+.slide-item {
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 300px;
+  scroll-snap-align: start;
+  text-align: center;
+}
+
+.slide-item img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.download-link {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.9rem;
+  color: #007bff;
+  text-decoration: none;
+}
+
+
 </style>
 
 
@@ -178,7 +282,7 @@ button:hover {
         <input type="text" id="noticeTitle" placeholder="제목을 입력하세요">
         <input type="date" id="performanceDate" placeholder="수행일자 입력">
         <textarea id="noticeContent" placeholder="내용을 입력하세요"></textarea>
-        <input type="file" id="noticeImage" accept="image/*">
+        <input type="file" id="noticeImage" accept="image/*" multiple>
         <button onclick="postNotice()">공지 등록</button>
       </div>
 
@@ -300,24 +404,89 @@ button:hover {
 
 
 
+async function loadNotices() {
+  const { data, error } = await supabaseClient
+    .from('notices')
+    .select('*')
+    .order('performance_date', { ascending: true });
+
+  const container = document.getElementById("noticeList");
+
+  if (error || !data) {
+    container.innerHTML = "공지사항을 불러오는 데 실패했습니다.";
+    return;
+  }
+
+  if (data.length === 0) {
+    container.innerHTML = "등록된 공지가 없습니다.";
+    return;
+  }
+
+  container.innerHTML = data.map(n => {
+  let imagesHTML = "";
+
+  if (Array.isArray(n.image_url)) {
+    const urls = n.image_url;
+
+    if (urls.length >= 2) {
+      const sliderId = `slider-${n.id || Math.random().toString(36).substr(2, 5)}`;
+      imagesHTML = `
+        <div class="slider-wrapper" id="${sliderId}">
+          <button class="prev-btn" onclick="prevSlide('${sliderId}')">◀</button>
+          <div class="slide-container">
+            ${urls.map((url, i) => `
+              <div class="slide-item ${i === 0 ? 'active' : ''}">
+                <img src="${url}" />
+                <a href="${url}" download class="download-link">📥 이미지 저장</a>
+              </div>
+            `).join('')}
+          </div>
+          <button class="next-btn" onclick="nextSlide('${sliderId}')">▶</button>
+        </div>
+      `;
+    } else if (urls.length === 1) {
+      imagesHTML = `
+        <div class="slide-item active" style="text-align: center;">
+          <img src="${urls[0]}" />
+        </div>
+      `;
+    }
+  }
+
+  return `
+    <div class="notice-item">
+      <strong>${n.title}</strong> (🗓️ 수행일: ${n.performance_date})<br/>
+      ${n.content}<br/>
+      <small>작성자: ${n.created_by}</small>
+      ${imagesHTML}
+    </div>
+  `;
+}).join('');
+}
+
+    
+
     async function postNotice() {
   const title = document.getElementById("noticeTitle").value.trim();
   const content = document.getElementById("noticeContent").value.trim();
   const performanceDate = document.getElementById("performanceDate").value;
-  const imageFile = document.getElementById("noticeImage").files[0];
+  const imageFiles = document.getElementById("noticeImage").files;
 
-  // ❗ 여기서 'date' → 'performanceDate' 로 수정
   if (!title || !content || !performanceDate) {
     alert("모든 항목을 입력해 주세요.");
     return;
   }
 
-  let imageUrl = '';
-  if (imageFile) {
-    try {
-      imageUrl = await uploadImage(imageFile);
-    } catch {
-      return alert("이미지 업로드 중 오류가 발생했습니다.");
+  let imageUrls = [];
+
+  if (imageFiles.length > 0) {
+    for (let i = 0; i < imageFiles.length; i++) {
+      try {
+        const url = await uploadImage(imageFiles[i]);
+        imageUrls.push(url);
+      } catch {
+        return alert("이미지 업로드 중 오류가 발생했습니다.");
+      }
     }
   }
 
@@ -325,7 +494,7 @@ button:hover {
     title,
     content,
     performance_date: performanceDate,
-    image_url: imageUrl,
+    image_url: imageUrls,
     created_by: currentUser.name
   });
 
@@ -336,47 +505,29 @@ button:hover {
     alert("공지 등록 완료!");
     document.getElementById("noticeTitle").value = "";
     document.getElementById("noticeContent").value = "";
-    document.getElementById("performanceDate").value = ""; // ← 올바른 필드로 수정
+    document.getElementById("performanceDate").value = "";
     document.getElementById("noticeImage").value = "";
     loadNotices();
   }
 }
 
 
-    async function loadNotices() {
-    const { data, error } = await supabaseClient
-        .from('notices')
-        .select('*')
-        .order('performance_date', { ascending: true });  // ← ✅ 수행일 기준 정렬
+function nextSlide(wrapperId) {
+  const container = document.querySelector(`#${wrapperId} .slide-container`);
+  const slides = container.querySelectorAll('.slide-item');
+  let current = Array.from(slides).findIndex(s => s.classList.contains('active'));
+  slides[current].classList.remove('active');
+  slides[(current + 1) % slides.length].classList.add('active');
+}
 
-    const container = document.getElementById("noticeList");
+function prevSlide(wrapperId) {
+  const container = document.querySelector(`#${wrapperId} .slide-container`);
+  const slides = container.querySelectorAll('.slide-item');
+  let current = Array.from(slides).findIndex(s => s.classList.contains('active'));
+  slides[current].classList.remove('active');
+  slides[(current - 1 + slides.length) % slides.length].classList.add('active');
+}
 
-    if (error || !data) {
-        container.innerHTML = "공지사항을 불러오는 데 실패했습니다.";
-        return;
-    }
-
-    if (data.length === 0) {
-        container.innerHTML = "등록된 공지가 없습니다.";
-        return;
-    }
-
-    container.innerHTML = data.map(n => `
-        <div class="notice-item">
-        <strong>${n.title}</strong> (🗓️ 수행일: ${n.performance_date})<br/>
-        ${n.content}<br/>
-        <small>작성자: ${n.created_by}</small><br/>
-        ${n.image_url ? `
-          <div>
-            <img src="${n.image_url}" alt="이미지"><br/>
-            <a href="${n.image_url}" download target="_blank">📥 이미지 다운로드</a>
-          </div>
-        ` : ''}
-
-
-        </div>
-    `).join('');
-    }
 
   </script>
 </body>
