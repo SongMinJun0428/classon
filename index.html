@@ -320,7 +320,7 @@ button:hover {
     { id: "목소윤", name: "목소윤", password: "bd1234", is_editor: true },
     { id: "서지효", name: "서지효", password: "bd1234", is_editor: false },
     { id: "손지민", name: "손지민", password: "bd1234", is_editor: false },
-    { id: "송민준", name: "송민준", password: "bd20318", is_editor: true },
+    { id: "송민준", name: "송민준", password: "bd1234", is_editor: true },
     { id: "송예준", name: "송예준", password: "bd1234", is_editor: false },
     { id: "송하윤", name: "송하윤", password: "bd1234", is_editor: false },
     { id: "신채윤", name: "신채윤", password: "bd1234", is_editor: false },
@@ -343,11 +343,11 @@ button:hover {
     let currentUser = null;
 
     async function login() {
-  const id = document.getElementById("loginId").value;
-  const pw = document.getElementById("loginPw").value;
-  const user = users.find(u => u.id === id && u.password === pw);
+    const id = document.getElementById("loginId").value.trim();   // 공백 제거
+    const pw = document.getElementById("loginPw").value.trim();   // 공백 제거
+    const user = users.find(u => u.id === id && u.password === pw);
 
-  if (user) {
+    if (user) {
     currentUser = user;
 
     // UI 업데이트
